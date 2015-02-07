@@ -4,11 +4,16 @@ from dateutil.parser import parse
 from decimal import Decimal
 import re
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
-from django.utils import datetime_safe, importlib
+from django.utils import datetime_safe
 from django.utils import six
 from tastypie.bundle import Bundle
 from tastypie.exceptions import ApiFieldError, NotFound
 from tastypie.utils import dict_strip_unicode_keys, make_aware
+
+try:
+    import importlib
+except ImportError:  # Prior to Django 1.9 fallback
+    from django.utils import importlib
 
 
 class NOT_PROVIDED:
@@ -719,19 +724,19 @@ class ToOneField(RelatedField):
                     foreign_obj = getattr(foreign_obj, attr, None)
                 except ObjectDoesNotExist:
                     foreign_obj = None
-        
+
         elif callable(self.attribute):
             previous_obj = bundle.obj
             foreign_obj = self.attribute(bundle)
-            
+
         if not foreign_obj:
             if not self.null:
                 if callable(self.attribute):
                     raise ApiFieldError("The related resource for resource %s could not be found." % (previous_obj))
                 else:
                     raise ApiFieldError("The model '%r' has an empty attribute '%s' and doesn't allow a null value." % (previous_obj, attr))
-            
-            return None        
+
+            return None
 
         self.fk_resource = self.get_related_resource(foreign_obj)
         fk_bundle = Bundle(obj=foreign_obj, request=bundle.request)
